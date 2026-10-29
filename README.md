@@ -19,8 +19,6 @@ https://chumacker0425-jpg.github.io/car-tycoon/
 
 ## 目前已知問題
 
-- 存檔尚未保留產線中的車輛及加工進度。
-- 讀檔時會使用玩家售價重算車款基準價格與成本。
 - 模型內嵌於 HTML，檔案約 21 MB，首次載入有優化空間。
 
 ## GitHub 同步
