@@ -2,6 +2,12 @@
 
 以 HTML、JavaScript 和 Three.js 製作的單人網頁遊戲，包含車廠經營、車款研發、賽車與開放世界駕駛。
 
+## 線上遊玩
+
+https://chumacker0425-jpg.github.io/car-tycoon/
+
+由 GitHub Pages 從 `main` 分支自動部署；首頁 `index.html` 會自動跳轉到遊戲。
+
 ## 執行
 
 使用靜態網頁伺服器提供 `造車大亨_我的車廠.html`，並在支援 WebGL 的瀏覽器中開啟。
