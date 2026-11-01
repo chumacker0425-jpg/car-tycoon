@@ -28,6 +28,8 @@ gltf-transform optimize in.glb out.glb --compress meshopt --palette false --inst
 
 低面數版改用 `--simplify true --simplify-ratio 0.12 --simplify-error 0.01`。遊戲靠材質名稱 `BODYPAINT` 換車漆，所以不能開 `--palette`；Three.js r128 不支援 GPU instancing 擴充，所以關掉 `--instance`。
 
+`car4`（頂級工藝超跑）來源模型面數較高：先移除 Blender 預設的 `Cube`、把車身漆材質改名為 `BODYPAINT`，完整版用 `--simplify-ratio 0.5 --simplify-error 0.0005`（約 15.5 萬面），低面數版用 `--simplify-ratio 0.06` 並拿掉 clearcoat（約 1.9 萬面）。
+
 ## 存檔
 
 進度保存在瀏覽器的 localStorage，自訂模型保存在 IndexedDB。存檔不會跨裝置同步；網站網址或瀏覽器變更時，也不會自動移轉。
