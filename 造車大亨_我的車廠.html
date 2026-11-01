@@ -64,7 +64,7 @@ body.inw #msg{display:none}body.rc,body.rc *{-webkit-user-select:none;user-selec
 <li>三杯賽：新手盃→街道賽→大獎賽，名次越好獎金與知名度越多。</li>
 <li><b>錦標賽</b>：資格賽（單圈計時）→64 強→16 強→決賽，每場要贏才晉級。</li>
 <li>操作：WASD／方向鍵駕駛、<b>空白鍵甩尾</b>、ESC 退出；手機有螢幕按鍵。出賽期間工廠照常生產。</li>
-<li><b>山道賽</b>：上山／下山 1 對 1 競速，先到終點獲勝；約 2 公里山路，中段五連髮夾彎，入彎要煞車或甩尾。</li>
+<li><b>山道賽</b>：上山／下山 1 對 1 競速，先到終點獲勝；約 2.5 公里山路，中段五連髮夾彎、終點前兩個 S 彎，入彎要煞車或甩尾。</li>
 <li>改裝（最多 5 級）：引擎＝極速＋加速、輪胎＝抓地、空力＝極速＋抓地、輕量化＝加速。</li>
 </ul>
 <h3 style="margin:10px 0 4px">🌆 開放世界</h3>
@@ -372,6 +372,7 @@ function buildTouge(){if(TPu)return;
  const HR=14,xs=[160,40],raw=[[0,0],[80,10],[150,-10],[220,20],[260,80],[230,140]];
  for(let k=0;k<6;k++){const z=160+k*2*HR,a=xs[k%2],b=xs[1-k%2];raw.push([a,z],[(a+b)/2,z],[b,z]);if(k<5){const s=k%2?1:-1;[-45,0,45].forEach(d=>{const t=d*Math.PI/180;raw.push([b+s*HR*Math.cos(t),z+HR+HR*Math.sin(t)])})}}
  raw.push([230,325],[290,385],[260,455],[180,485],[100,525],[60,595],[120,655],[200,675]);
+ raw.push([255,715],[315,665],[375,715],[435,665],[490,690],[540,700]); // 終點前兩個 S 彎（左右交替四個彎）
  const cu=new THREE.CatmullRomCurve3(raw.map(([x,z])=>new THREE.Vector3(x,0,z)),false,"centripetal"),len=cu.getLength();TN=Math.round(len/1.9);TPu=cu.getSpacedPoints(TN-1);TDS=len/(TN-1);
  TPu.forEach((p,i)=>{const q=i/(TN-1);p.y=220*q+3*Math.sin(q*Math.PI*15)});
  TGu=TPu.map((p,i)=>{const a=TPu[Math.max(0,i-1)],b=TPu[Math.min(TN-1,i+1)];return new THREE.Vector3(b.x-a.x,0,b.z-a.z).normalize()});
@@ -430,7 +431,7 @@ function tFinish(){const r=race;r.done=true;sfx.engStop();const a=r.ai[0],done=!
  S.cash+=pz;S.mf[r.m]=Math.min(100,S.mf[r.m]+gm);S.fame=Math.min(100,S.fame+gm*.5);if(done&&(!S.best[key]||t<S.best[key]))S.best[key]=t;save();
  sfx.fin(ok);$("ot").textContent=(r.to?"⏱ 超過時間":!done?"❌ 對手抵達終點":ok?"🏆 山道勝利！":"🥈 第 2 名")+"・"+(dn?"下山":"上山");
  $("od").textContent=(r.to?"沒在 "+r.lim+" 秒內抵達終點。":!done?"對手 "+f(a.fin)+" 秒抵達，你沒在 15 秒內跟上。":"你的時間 "+t+" 秒"+(a.fin!==undefined?"（對手 "+f(a.fin)+" 秒）":"，對手還沒到")+"・撞護欄 "+r.hits+" 次。")+"　獎金 "+mny(pz)+"　知名度：全域 +"+f(gm*.5)+"、"+M[r.m].n+" +"+f(gm);$("ob").textContent="回工廠";$("ob").onclick=endRace;$("ov").style.display="flex"}
-const tougeUI=m=>`<div class="sec"><b>⛰ 山道賽</b> <small>1 對 1 山路競速，先抵達終點獲勝。全長約 2 公里，中段有五連髮夾彎：入彎前要煞車，也可以按住甩尾（空白鍵／🌀）甩過去。上山有重力拖速度；下山更快、更難煞，獎金 ×1.3。</small>`+[[1,"⛰ 上山","tut"],[-1,"🏔 下山","tdt"]].map(([d,n,k])=>`<div class="r"><span><b>${n}</b> <small>勝利獎金 ${mny(touPz(m.t,d))}${S.best[k]?"・最佳 "+S.best[k]+" 秒":""}</small></span><button class="p" data-a="tou" data-d="${d}">出賽</button></div>`).join("")+`</div>`;
+const tougeUI=m=>`<div class="sec"><b>⛰ 山道賽</b> <small>1 對 1 山路競速，先抵達終點獲勝。全長約 2.5 公里，中段有五連髮夾彎、終點前兩個 S 彎：入彎前要煞車，也可以按住甩尾（空白鍵／🌀）甩過去。上山有重力拖速度；下山更快、更難煞，獎金 ×1.3。</small>`+[[1,"⛰ 上山","tut"],[-1,"🏔 下山","tdt"]].map(([d,n,k])=>`<div class="r"><span><b>${n}</b> <small>勝利獎金 ${mny(touPz(m.t,d))}${S.best[k]?"・最佳 "+S.best[k]+" 秒":""}</small></span><button class="p" data-a="tou" data-d="${d}">出賽</button></div>`).join("")+`</div>`;
 /* 工廠鏡頭與輸入 */
 let th=.7,ph=1,rad=46;const tgt=new THREE.Vector3(9,0,0),cv=R.domElement,ptr=new Map(),ray=new THREE.Raycaster();let down=null,pd=1;
 const pdist=()=>{const a=[...ptr.values()];return Math.hypot(a[0][0]-a[1][0],a[0][1]-a[1][1])||1},zm=v=>Math.max(14,Math.min(200,v));
