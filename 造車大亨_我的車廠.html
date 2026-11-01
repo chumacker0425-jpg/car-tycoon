@@ -63,6 +63,7 @@ body.inw #msg{display:none}body.rc,body.rc *{-webkit-user-select:none;user-selec
 <li>三杯賽：新手盃→街道賽→大獎賽，名次越好獎金與知名度越多。</li>
 <li><b>錦標賽</b>：資格賽（單圈計時）→64 強→16 強→決賽，每場要贏才晉級。</li>
 <li>操作：WASD／方向鍵駕駛、<b>空白鍵甩尾</b>、ESC 退出；手機有螢幕按鍵。出賽期間工廠照常生產。</li>
+<li><b>山道飄移賽</b>：上山／下山 1 對 1 追走，按住甩尾過彎拿分，連續飄移倍率越高、撞護欄中斷連段；分數贏過對手才算勝。</li>
 <li>改裝（最多 5 級）：引擎＝極速＋加速、輪胎＝抓地、空力＝極速＋抓地、輕量化＝加速。</li>
 </ul>
 <h3 style="margin:10px 0 4px">🌆 開放世界</h3>
@@ -208,7 +209,7 @@ function raceUI(){if(!M.length){set($("p1"),"尚無車款");set($("p2"),"");set(
  const i=S.rm,m=M[i],s=stats(i);
  set($("p1"),`<div class="r"><button data-a="rp">◀</button><span style="text-align:center"><b>${esc(m.n)}</b><br><small>${CL[m.t]}・0–100 ${m.s} 秒・${m.hp} 馬力<br>全域知名度 ${Math.round(S.fame)}・本車款 ${Math.round(S.mf[i])}</small></span><button data-a="rn">▶</button><button data-a="mdl" data-i="${i}">換模型</button>${MODELS[i]?"":cbtn(i)}</div>`+bar("極速 "+Math.round(s.v*3.6)+" km/h",s.v,160)+bar("加速 "+f(s.a),s.a,40)+bar("抓地 "+f(s.g),s.g,14));
  set($("p2"),PN.map((n,k)=>`<div class="r"><span>${n} Lv.${S.up[i][k]}/5</span><button data-a="ru" data-k="${k}" ${S.up[i][k]>=5||S.cash<rupc(i,k)?"disabled":""}>${S.up[i][k]>=5?"滿級":"改裝 "+mny(rupc(i,k))}</button></div>`).join(""));
- set($("p3"),champUI()+TI.map((t,k)=>`<div class="r"><span><b>${t.n}</b> <small>冠軍：獎金 ${mny(t.pz[0]*CP[m.t])}、知名度 +${FB[0]*t.fm}${S.best[k]?"・最佳 "+S.best[k]+" 秒":""}</small></span><button class="p" data-a="race" data-t="${k}">出賽</button></div>`).join("")+`<small>對手是同級距的車。名次越好、賽事越高級，知名度越多；知名度提升該車款的需求與可賣價格，並隨時間退去。賽車期間工廠仍會運轉。</small>`)}
+ set($("p3"),champUI()+tougeUI(m)+TI.map((t,k)=>`<div class="r"><span><b>${t.n}</b> <small>冠軍：獎金 ${mny(t.pz[0]*CP[m.t])}、知名度 +${FB[0]*t.fm}${S.best[k]?"・最佳 "+S.best[k]+" 秒":""}</small></span><button class="p" data-a="race" data-t="${k}">出賽</button></div>`).join("")+`<small>對手是同級距的車。名次越好、賽事越高級，知名度越多；知名度提升該車款的需求與可賣價格，並隨時間退去。賽車期間工廠仍會運轉。</small>`)}
 $("pn").onclick=e=>{const b=e.target.closest("[data-a]");if(!b||b.disabled)return;sfx.click();const a=b.dataset.a,i=+b.dataset.i,s=S.lines[S.sel.l].st[S.sel.i];
  if(a==="tab"){S.tab=+b.dataset.t;if(S.tab===2)enterWorld();else{enter("fac");gW.visible=false}}else if(a==="up"){S.cash-=upc(s);s.lv++}else if(a==="line"){S.cash-=lcost();addLine()}else if(a==="auto"){S.cash-=acost();S.auto++}
  else if(a==="col"){cT=i;$("cp").value="#"+M[i].col.toString(16).padStart(6,"0");$("cp").click();return}else if(a==="mdl"){mT=i;mR=null;$("mf").click();return}else if(a==="mfl"){flipCar(i);return}else if(a==="mrs"){resetCar(i);return}else if(a==="rm"){mT=-1;mR={ri:i,t:rivTier(i)};$("mf").click();return}else if(a==="rfl"){flipRiv(i,rivTier(i));return}else if(a==="rrs"){resetRiv(i,rivTier(i));return}
@@ -217,7 +218,7 @@ $("pn").onclick=e=>{const b=e.target.closest("[data-a]");if(!b||b.disabled)retur
  else if(a==="res"){const v=$("rivin").value.trim().slice(0,20)||S.riv[i].n;S.riv[i].n=v;rivEd=null;save();toast("✏️ 對手改名為："+v,"good");ui();return}
  else if(a==="clr"){const k=b.dataset.i===undefined?"all":+b.dataset.i;if(armed(k)){clearStock(k==="all"?-1:k);S.clr=null}else S.clr={k,t:Date.now()}}else if(a==="rd"){openName("rd",+b.dataset.t);return}else if(a==="pr"){const m=M[i];S.price[i]=Math.round(Math.max(m.p*.7,S.price[i]+(+b.dataset.d)*m.p*.05)*10)/10}
  else if(a==="rp"||a==="rn"){S.rm=(S.rm+(a==="rn"?1:M.length-1))%M.length}
- else if(a==="ru"){const k=+b.dataset.k;S.cash-=rupc(S.rm,k);S.up[S.rm][k]++}else if(a==="race"){startRace(+b.dataset.t);return}else if(a==="chj"){S.ch={st:0,m:S.rm}}else if(a==="chq"){S.ch=null}else if(a==="chg"){const st=S.ch.st;startRace(0,{ch:st,m:S.ch.m,tt:st===0,laps:CHL[st],target:qTime(S.ch.m),T:{n:CHN[st],r:CHR[st],pz:[0,0,0,0],fm:0}});return}
+ else if(a==="ru"){const k=+b.dataset.k;S.cash-=rupc(S.rm,k);S.up[S.rm][k]++}else if(a==="race"){startRace(+b.dataset.t);return}else if(a==="tou"){startTouge(+b.dataset.d);return}else if(a==="chj"){S.ch={st:0,m:S.rm}}else if(a==="chq"){S.ch=null}else if(a==="chg"){const st=S.ch.st;startRace(0,{ch:st,m:S.ch.m,tt:st===0,laps:CHL[st],target:qTime(S.ch.m),T:{n:CHN[st],r:CHR[st],pz:[0,0,0,0],fm:0}});return}
  ui()};
 $("sp").onclick=()=>{S.spd=S.spd===1?2:S.spd===2?4:1;$("sp").textContent="×"+S.spd};$("ps").onclick=()=>{S.pause=!S.pause;$("ps").textContent=S.pause?"繼續":"暫停"};
 $("rst").onclick=function(){if(this._c){try{localStorage.removeItem(SK)}catch(e){}idbClear().then(()=>location.reload())}else{this._c=1;this.textContent="確定重來？";setTimeout(()=>{this._c=0;this.textContent="重來"},2500)}};
@@ -318,7 +319,7 @@ function startRace(ti,cf){if(race){gR.remove(race.pm.g);race.ai.forEach(a=>gR.re
  const pm=full(mkCar(M[mi].col,mi));gR.add(pm.g);
  race={ti,T,cl,cf,laps:cf.laps||3,tt:!!cf.tt,p:c,pm,m:mi,t:0,cd:3.4,go:false,done:false,ai:(cf.tt?[]:[[4,3],[1,-3],[1,3]].map((p,ix)=>{const rix=(S.riv&&S.riv.length)?((cl+ix)%S.riv.length):null,r=rix!==null?S.riv[rix]:null;if(!r)r={c:0x888888,n:"對手",f:30};return{s:p[0],l:p[1],k:14*Vc/36.3,v:Vc*T.r*(1+(r.f-30)*.003)*rnd(.98,1.02),m:full(mkCar(r.c,undefined,cl,rix)),rn:r.n}}))};
  race.ai.forEach(a=>{gR.add(a.m.g);if(a.rn){const lb=lab(a.rn);lb.position.set(0,3.4,0);a.m.g.add(lb)}});enter("race");sfx.engStart();cam.position.set(c.x-Math.sin(c.h)*10,5,c.z-Math.cos(c.h)*10)}
-function endRace(){if(!race)return;sfx.engStop();gR.remove(race.pm.g);race.ai.forEach(a=>gR.remove(a.m.g));race=null;gW.visible=false;$("ov").style.display="none";enter("fac")}
+function endRace(){if(!race)return;sfx.engStop();const G=race.tg?gT:gR;G.remove(race.pm.g);race.ai.forEach(a=>G.remove(a.m.g));race=null;gW.visible=false;gT.visible=false;$("ov").style.display="none";enter("fac")}
 const KM={ArrowLeft:"l",KeyA:"l",ArrowRight:"r",KeyD:"r",ArrowUp:"u",KeyW:"u",ArrowDown:"d",KeyS:"d",Space:"dr",KeyL:"dr"};
 addEventListener("keydown",e=>{const k=KM[e.code];if(k&&(mode==="race"||mode==="drive")){K[k]=1;e.preventDefault()}if(e.code==="Escape"&&mode==="race"&&race&&!race.done)endRace()});
 addEventListener("keydown",e=>{if(e.key==="F9"){e.preventDefault();const v=parseInt(prompt("設定現金（單位：萬），例如 100000000000000000",String(Math.round(S.cash))),10);if(isFinite(v)&&v>=0){S.cash=v;save();ui();toast("💰 現金已設為 "+mny(v),"good")}}});
@@ -328,7 +329,7 @@ document.addEventListener("click",e=>{if(e.target.closest&&e.target.closest("[da
 document.addEventListener("pointerdown",e=>{if(document.body.classList.contains("uhide")&&e.target.closest&&!e.target.closest("button"))document.body.classList.remove("uhide")},true);
 function near(x,z,i0){let b=i0,bd=1e9;for(let k=-12;k<=12;k++){const i=(i0+k+N)%N,d=(TP[i].x-x)**2+(TP[i].z-z)**2;if(d<bd){bd=d;b=i}}return[b,Math.sqrt(bd)]}
 const adv=(a,dt)=>{a.s+=a.v/(1+a.k*CM[Math.floor(a.s)%N])*dt/DS};
-function step(dt){smokeUpdate(dt);const r=race,c=r.p;r.cd-=dt;r.go=r.cd<=.4;const nn=Math.ceil(r.cd-.4);if(nn!==r.nn){r.nn=nn;if(nn>0&&nn<=3)sfx.beep();else if(nn===0)sfx.go()}$("cd").textContent=r.cd>.4?Math.ceil(r.cd-.4):r.cd>-.8?"GO!":"";
+function step(dt){smokeUpdate(dt);const r=race,c=r.p;r.cd-=dt;r.go=r.cd<=.4;const nn=Math.ceil(r.cd-.4);if(nn!==r.nn){r.nn=nn;if(nn>0&&nn<=3)sfx.beep();else if(nn===0)sfx.go()}$("cd").textContent=r.cd>.4?Math.ceil(r.cd-.4):r.cd>-.8?"GO!":"";if(r.tg){tStep(dt);return}
  if(r.go&&!r.done){r.t+=dt;const s=stats(r.m),VM=s.v*(c.d>9?.55:1);
   const st=(K.l?1:0)-(K.r?1:0);let Fx=Math.sin(c.h),Fz=Math.cos(c.h);const sf0=c.vx*Fx+c.vz*Fz;
   const DR=K.dr&&sf0>6?1:0;c.h+=st*(1.9*(DR?1.45:1)/(1+Math.abs(sf0)/45))*dt*Math.min(1,Math.abs(sf0)/8)*(sf0>=0?1:-1);
@@ -360,6 +361,71 @@ function champUI(){const ch=S.ch,m=M[S.rm];
 function finish(){const r=race;r.done=true;sfx.engStop();if(r.cf.ch!==undefined)return champFinish();const rank=1+r.ai.filter(a=>a.s>=r.laps*N).length,pz=r.T.pz[rank-1]*CP[r.cl],t=f(r.t),gm=FB[rank-1]*r.T.fm;
  S.cash+=pz;S.mf[r.m]=Math.min(100,S.mf[r.m]+gm);S.fame=Math.min(100,S.fame+gm*.5);if(!S.best[r.ti]||t<S.best[r.ti])S.best[r.ti]=t;save();
  sfx.fin(rank===1);$("ot").textContent=(rank===1?"🏆 冠軍！":"第 "+rank+" 名")+"・"+r.T.n;$("od").textContent="總時間 "+t+" 秒　獎金 "+mny(pz)+"　知名度：全域 +"+f(gm*.5)+"、"+M[r.m].n+" +"+gm;$("ob").textContent="回工廠";$("ob").onclick=endRace;$("ov").style.display="flex"}
+/* 山道飄移賽：點對點山路，上山＝沿索引前進、下山＝反向；按住甩尾過彎累積飄移分數 */
+const gT=new THREE.Group();gT.visible=false;sc.add(gT);
+const TN=640,THW=6.5,TGT0=3000;let TPu=null,TGu,TCMu,TCMd,TSC,TDS;
+function buildTouge(){if(TPu)return;
+ const raw=[[0,0],[70,6],[130,30],[150,62],[128,86],[60,92],[-20,100],[-72,118],[-84,148],[-56,170],[10,176],[80,186],[120,212],[112,244],[64,256],[-10,262],[-70,280],[-82,312],[-50,334],[20,340],[90,350],[150,372]];
+ const cu=new THREE.CatmullRomCurve3(raw.map(([x,z])=>new THREE.Vector3(x,0,z)),false,"centripetal");TPu=cu.getSpacedPoints(TN-1);TDS=cu.getLength()/(TN-1);
+ TPu.forEach((p,i)=>{const q=i/(TN-1);p.y=120*q+3*Math.sin(q*Math.PI*9)});
+ TGu=TPu.map((p,i)=>{const a=TPu[Math.max(0,i-1)],b=TPu[Math.min(TN-1,i+1)];return new THREE.Vector3(b.x-a.x,0,b.z-a.z).normalize()});
+ const CVt=TGu.map((t,i)=>i<TN-1?Math.acos(Math.min(1,t.dot(TGu[i+1])))/TDS:0),win=(i,d)=>{let m=0;for(let k=0;k<16;k++){const j=i+d*k;if(j>=0&&j<TN)m=Math.max(m,CVt[j])}return m};
+ TCMu=CVt.map((_,i)=>win(i,1));TCMd=CVt.map((_,i)=>win(i,-1));
+ TSC=TGu.map((_,i)=>{let s=0;for(let k=-4;k<=4;k++){const j=Math.max(0,Math.min(TN-2,i+k)),a=TGu[j],b=TGu[j+1];s+=(a.x*b.z-a.z*b.x)/TDS}return s/9});
+ const mesh=(P,I,col)=>{const g=new THREE.BufferGeometry();g.setAttribute("position",new THREE.Float32BufferAttribute(P,3));g.setIndex(I);g.computeVertexNormals();const m=new THREE.Mesh(g,new THREE.MeshLambertMaterial({color:col,side:THREE.DoubleSide}));gT.add(m);return m};
+ const strip=(o0,o1,h0,h1,col)=>{const P=[],I=[];for(let i=0;i<TN;i++){const t=TGu[i],p=TPu[i];P.push(p.x+t.z*o0,p.y+h0,p.z-t.x*o0,p.x+t.z*o1,p.y+h1,p.z-t.x*o1)}for(let i=0;i<TN-1;i++){const a=i*2,b=a+2;I.push(a,a+1,b,a+1,b+1,b)}return mesh(P,I,col)};
+ strip(THW,-THW,.05,.05,0x45494f);strip(.15,-.15,.07,.07,0xd8c25a);
+ [THW+.3,-THW-.3].forEach(o=>{strip(o,o,.1,.95,0xd9dcdf);strip(o,o,-3,.1,0x6d5a45)});
+ [6,TN-7].forEach(i=>{const t=TGu[i],p=TPu[i],b=box(THW*2,.08,1.4,0xffffff,p.x,p.y+.1,p.z,gT);b.rotation.y=Math.atan2(t.x,t.z)});
+ let x0=1e9,x1=-1e9,z0=1e9,z1=-1e9;TPu.forEach(p=>{x0=Math.min(x0,p.x);x1=Math.max(x1,p.x);z0=Math.min(z0,p.z);z1=Math.max(z1,p.z)});
+ const pad=90,GX=64,GZ=64;x0-=pad;z0-=pad;const sx=(x1+pad-x0)/GX,sz=(z1+pad-z0)/GZ,HP=[],HI=[],tr=[];
+ for(let j=0;j<=GZ;j++)for(let i=0;i<=GX;i++){const x=x0+i*sx,z=z0+j*sz;let bd=1e9,by=0;for(let k=0;k<TN;k+=3){const p=TPu[k],d=(p.x-x)**2+(p.z-z)**2;if(d<bd){bd=d;by=p.y}}
+  const d=Math.sqrt(bd),h=by-1.2-Math.max(0,d-THW-1.5)*.45+(d>THW+6?rnd(-1.2,1.2):0);HP.push(x,h,z);if(d>THW+7&&Math.random()<.18)tr.push([x+rnd(-2,2),h,z+rnd(-2,2)])}
+ for(let j=0;j<GZ;j++)for(let i=0;i<GX;i++){const a=j*(GX+1)+i,b=a+1,c=a+GX+1,d=c+1;HI.push(a,c,b,b,c,d)}
+ mesh(HP,HI,0x6f9a52);box(1600,.1,1600,0x5f8a48,(x0+x1)/2,-45,(z0+z1)/2,gT);
+ const tm=new THREE.InstancedMesh(new THREE.ConeGeometry(2.6,9,6),new THREE.MeshLambertMaterial({color:0x3f6b3a}),tr.length),m4=new THREE.Matrix4();tr.forEach((p,i)=>{m4.makeTranslation(p[0],p[1]+4.2,p[2]);tm.setMatrixAt(i,m4)});gT.add(tm)}
+const touPz=(cl,dir)=>Math.round(60*CP[cl]*(dir<0?1.3:1));
+function touRef(cl,dir){const Vc=34+10*cl+2.4,k=14*Vc/36.3,v=Vc*.8*(dir>0?.9:1.05),CM=dir>0?TCMu:TCMd;let s=0;for(let i=0;i<TN;i++)s+=TDS*(1+k*CM[i])/v;return s}
+function startTouge(dir){buildTouge();if(race)endRace();gW.visible=false;const mi=S.rm,cl=M[mi].t,Vc=34+10*cl+2.4,u=i=>dir>0?i:TN-1-i,i0=10,p=TPu[u(i0)],t0=TGu[u(i0)],tx=dir*t0.x,tz=dir*t0.z;
+ const c={x:p.x+tz*2,z:p.z-tx*2,h:Math.atan2(tx,tz),vx:0,vz:0,i:i0,lap:0,d:0,prog:i0};
+ const rix=(S.riv&&S.riv.length)?cl%S.riv.length:null,rv=rix!==null?S.riv[rix]:{c:0x888888,n:"對手",f:30},pm=full(mkCar(M[mi].col,mi)),a={s:i0+8,l:-2,k:14*Vc/36.3,v:Vc*.8*(dir>0?1.02:1.2)*(.9+rv.f*.002),m:full(mkCar(rv.c,undefined,cl,rix)),rn:rv.n};
+ [pm.g,a.m.g].forEach(g=>{g.rotation.order="YXZ";gT.add(g)});const lb=lab(a.rn);lb.position.set(0,3.4,0);a.m.g.add(lb);
+ race={tg:1,dir,cl,cf:{},T:{n:dir>0?"上山":"下山"},laps:1,p:c,pm,m:mi,t:0,cd:3.4,go:false,done:false,ai:[a],score:0,chain:0,chainT:0,mult:1,grace:0,hits:0,ang:0,msg:"",msgT:0,
+  tgt:Math.round(TGT0*(Vc/36.4)*(.75+rv.f*.005)*(dir<0?1.2:1)),lim:Math.round(touRef(cl,dir)*1.6+10)};
+ enter("race");gR.visible=false;gT.visible=true;sc.fog=new THREE.Fog(0xcfd8e0,120,420);sfx.engStart();cam.position.set(c.x-Math.sin(c.h)*10,p.y+5,c.z-Math.cos(c.h)*10)}
+function tStep(dt){const r=race,c=r.p,u=i=>r.dir>0?i:TN-1-i,cl=i=>Math.max(0,Math.min(TN-1,i)),tp=i=>TPu[u(cl(i))],tt=i=>{const t=TGu[u(cl(i))];return{x:r.dir*t.x,z:r.dir*t.z}};
+ if(r.go&&!r.done){r.t+=dt;const s=stats(r.m),VM=s.v*(r.dir>0?.92:1.1),slope=(tp(c.i+1).y-tp(c.i).y)/TDS;
+  const st=(K.l?1:0)-(K.r?1:0);let Fx=Math.sin(c.h),Fz=Math.cos(c.h);const sf0=c.vx*Fx+c.vz*Fz;
+  const DR=K.dr&&sf0>6?1:0;c.h+=st*(1.9*(DR?1.45:1)/(1+Math.abs(sf0)/45))*dt*Math.min(1,Math.abs(sf0)/8)*(sf0>=0?1:-1);
+  Fx=Math.sin(c.h);Fz=Math.cos(c.h);const Lx=Math.cos(c.h),Lz=-Math.sin(c.h);let sf=c.vx*Fx+c.vz*Fz,sl=c.vx*Lx+c.vz*Lz;
+  if(K.u)sf+=(DR?s.a*.72:s.a)*Math.max(0,1-sf/VM)*dt;else sf-=sf*.18*dt;if(K.d)sf=Math.max(-10,sf-(sf>0?45:12)*dt);if(sf>VM)sf-=(sf-VM)*1.5*dt;sf-=19.6*slope*dt;
+  sl*=Math.exp(-(DR?Math.max(s.g*.12,.28):s.g)*dt);c.vx=Fx*sf+Lx*sl;c.vz=Fz*sf+Lz*sl;c.x+=c.vx*dt;c.z+=c.vz*dt;
+  let b=c.i,bd=1e9;for(let k=-14;k<=14;k++){const i=c.i+k;if(i<0||i>=TN)continue;const q=tp(i),d=(q.x-c.x)**2+(q.z-c.z)**2;if(d<bd){bd=d;b=i}}c.i=b;
+  const q=tp(b),t=tt(b),nx=t.z,nz=-t.x,o=(c.x-q.x)*nx+(c.z-q.z)*nz,lim=THW-1;c.d=Math.abs(o);
+  if(c.d>lim){const sg=Math.sign(o);c.x-=nx*(o-sg*lim);c.z-=nz*(o-sg*lim);const vn=c.vx*nx+c.vz*nz;if(vn*sg>0){c.vx-=nx*vn*1.4;c.vz-=nz*vn*1.4;c.vx*=.85;c.vz*=.85;
+   if(Math.abs(vn)>3&&r.t-(r.hitT||-9)>.6){r.hitT=r.t;r.hits++;if(r.chain>0){r.chain=0;r.chainT=0;r.mult=1;r.msg="💥 撞護欄，連段中斷";r.msgT=1.6}sfx.beep()}}}
+  if(b===0){const al=(c.x-q.x)*t.x+(c.z-q.z)*t.z;if(al<0){c.x-=t.x*al;c.z-=t.z*al}}
+  const spd=Math.hypot(c.vx,c.vz),fw=c.vx*Fx+c.vz*Fz,lat=Math.abs(c.vx*Lx+c.vz*Lz),ang=Math.atan2(lat,Math.max(.1,fw))*57.3;r.ang=ang;
+  if(spd>8&&fw>0&&ang>15&&ang<80){r.chain+=Math.min(ang,45)*spd*dt*.5;r.chainT+=dt;r.mult=1+Math.min(4,Math.floor(r.chainT/1.5));r.grace=0}
+  else if(r.chain>0&&(r.grace+=dt)>.7){r.score+=Math.round(r.chain*r.mult);r.chain=0;r.chainT=0;r.mult=1}
+  if(lat>3){smokeAcc+=dt*22;while(smokeAcc>=1){smokeAcc-=1;puffSmoke(c.x-Fx*1.15+Lx*(Math.random()*1.7-.85),q.y,c.z-Fz*1.15+Lz*(Math.random()*1.7-.85))}}
+  r.ai.forEach(a=>{a.s=Math.min(TN-1,a.s+a.v/(1+a.k*(r.dir>0?TCMu:TCMd)[u(cl(Math.floor(a.s)))])*dt/TDS)});
+  if(c.i>=TN-8)tFinish();else if(r.t>r.lim){r.to=true;tFinish()}}
+ const g0=tp(c.i),g1=tp(c.i+1),tc=tt(c.i),fr=Math.max(0,Math.min(1,((c.x-g0.x)*tc.x+(c.z-g0.z)*tc.z)/TDS)),cy=g0.y+(g1.y-g0.y)*fr+.4;
+ const pm=r.pm.g;pm.position.set(c.x,cy,c.z);pm.rotation.y=c.h-Math.PI/2;pm.rotation.z=Math.atan((g1.y-g0.y)/TDS);
+ r.ai.forEach(a=>{const i=Math.min(TN-2,Math.floor(a.s)),q=a.s-i,p0=tp(i),p1=tp(i+1),t=tt(i),yaw=Math.max(-.55,Math.min(.55,-r.dir*TSC[u(i)]*9)),g=a.m.g;
+  g.position.set(p0.x+(p1.x-p0.x)*q+t.z*a.l,p0.y+(p1.y-p0.y)*q+.4,p0.z+(p1.z-p0.z)*q-t.x*a.l);g.rotation.y=Math.atan2(t.x,t.z)-Math.PI/2+yaw;g.rotation.z=Math.atan((p1.y-p0.y)/TDS);
+  if(r.go&&a.s<TN-1&&Math.abs(yaw)>.25){a.sm=(a.sm||0)+dt*14;while(a.sm>=1){a.sm-=1;puffSmoke(g.position.x-t.x*1.5+rnd(-.8,.8),p0.y,g.position.z-t.z*1.5+rnd(-.8,.8))}}});
+ const Fx=Math.sin(c.h),Fz=Math.cos(c.h),spd=Math.hypot(c.vx,c.vz),k=1-Math.exp(-6*dt),bk=9+spd*.06;
+ cam.position.x+=(c.x-Fx*bk-cam.position.x)*k;cam.position.z+=(c.z-Fz*bk-cam.position.z)*k;cam.position.y+=(cy+4.4-cam.position.y)*k;cam.lookAt(c.x+Fx*6,cy+1.2,c.z+Fz*6);
+ const a=r.ai[0],gap=Math.round((a.s-c.i)*TDS),left=Math.max(0,Math.round((TN-8-c.i)*TDS));if(r.msgT>0)r.msgT-=dt;
+ set($("hud"),`<b>${r.dir>0?"⛰ 上山":"🏔 下山"}</b>　分數 <b>${r.score}</b>${r.chain>0?`　<b style="color:#ff5533">+${Math.round(r.chain)} ×${r.mult}</b>`:""}　<small>對手 ${r.tgt}</small><br><b>${Math.round(spd*3.6)}</b> km/h　角度 ${Math.round(r.ang)}°　剩 ${left} m　${gap>=0?"對手領先 "+gap:"領先對手 "+(-gap)} m　${f(r.t)}／${r.lim} 秒${r.msgT>0?" <b>"+r.msg+"</b>":""} <button id="qb">退出</button> <button id="qg" data-uig style="padding:6px 12px;background:#283242;color:#fff;border:1px solid #556274;border-radius:7px;cursor:pointer">👁隱藏</button>`);const qb=$("qb");if(qb)qb.onclick=endRace;sfx.eng(c,r)}
+function tFinish(){const r=race;r.done=true;sfx.engStop();if(r.chain>0){r.score+=Math.round(r.chain*r.mult);r.chain=0}
+ const first=!r.to&&r.ai[0].s<TN-8,fin=Math.round(r.score*(first?1.15:1)),ok=!r.to&&fin>=r.tgt,dn=r.dir<0,pz=ok?touPz(r.cl,r.dir):0,gm=r.to?0:(ok?6:1.5)*(dn?1.3:1),key=dn?"td":"tu";
+ S.cash+=pz;S.mf[r.m]=Math.min(100,S.mf[r.m]+gm);S.fame=Math.min(100,S.fame+gm*.5);if(!r.to&&(!S.best[key]||fin>S.best[key]))S.best[key]=fin;save();
+ sfx.fin(ok);$("ot").textContent=(r.to?"⏱ 超過時間":ok?"🏆 山道勝利！":"❌ 分數輸給對手")+"・"+(dn?"下山":"上山");
+ $("od").textContent=(r.to?"沒在 "+r.lim+" 秒內抵達終點。":"飄移分數 "+r.score+(first?"，先抵達終點 ×1.15 = "+fin:"")+"（對手 "+r.tgt+"）・撞護欄 "+r.hits+" 次。")+"　獎金 "+mny(pz)+"　知名度：全域 +"+f(gm*.5)+"、"+M[r.m].n+" +"+f(gm);$("ob").textContent="回工廠";$("ob").onclick=endRace;$("ov").style.display="flex"}
+const tougeUI=m=>`<div class="sec"><b>⛰ 山道飄移賽</b> <small>1 對 1 山路追走：按住甩尾（空白鍵／🌀）過彎累積分數，連續飄移倍率最高 ×5，撞護欄會中斷連段；分數贏過對手才算勝，先到終點分數 ×1.15。上山有重力拖速度；下山更快、對手更強。</small>`+[[1,"⛰ 上山","tu"],[-1,"🏔 下山","td"]].map(([d,n,k])=>`<div class="r"><span><b>${n}</b> <small>勝利獎金 ${mny(touPz(m.t,d))}${S.best[k]?"・最佳 "+S.best[k]+" 分":""}</small></span><button class="p" data-a="tou" data-d="${d}">出賽</button></div>`).join("")+`</div>`;
 /* 工廠鏡頭與輸入 */
 let th=.7,ph=1,rad=46;const tgt=new THREE.Vector3(9,0,0),cv=R.domElement,ptr=new Map(),ray=new THREE.Raycaster();let down=null,pd=1;
 const pdist=()=>{const a=[...ptr.values()];return Math.hypot(a[0][0]-a[1][0],a[0][1]-a[1][1])||1},zm=v=>Math.max(14,Math.min(200,v));
