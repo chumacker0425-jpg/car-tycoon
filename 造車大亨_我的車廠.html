@@ -64,7 +64,7 @@ body.inw #msg{display:none}body.rc,body.rc *{-webkit-user-select:none;user-selec
 <li>三杯賽：新手盃→街道賽→大獎賽，名次越好獎金與知名度越多。</li>
 <li><b>錦標賽</b>：資格賽（單圈計時）→64 強→16 強→決賽，每場要贏才晉級。</li>
 <li>操作：WASD／方向鍵駕駛、<b>空白鍵甩尾</b>、ESC 退出；手機有螢幕按鍵。出賽期間工廠照常生產。</li>
-<li><b>山道飄移賽</b>：上山／下山 1 對 1 追走，按住甩尾過彎拿分，連續飄移倍率越高、撞護欄中斷連段；分數贏過對手才算勝。</li>
+<li><b>山道賽</b>：上山／下山 1 對 1 競速，先到終點獲勝；約 2 公里山路，中段五連髮夾彎，入彎要煞車或甩尾。</li>
 <li>改裝（最多 5 級）：引擎＝極速＋加速、輪胎＝抓地、空力＝極速＋抓地、輕量化＝加速。</li>
 </ul>
 <h3 style="margin:10px 0 4px">🌆 開放世界</h3>
@@ -365,13 +365,15 @@ function champUI(){const ch=S.ch,m=M[S.rm];
 function finish(){const r=race;r.done=true;sfx.engStop();if(r.cf.ch!==undefined)return champFinish();const rank=1+r.ai.filter(a=>a.s>=r.laps*N).length,pz=r.T.pz[rank-1]*CP[r.cl],t=f(r.t),gm=FB[rank-1]*r.T.fm;
  S.cash+=pz;S.mf[r.m]=Math.min(100,S.mf[r.m]+gm);S.fame=Math.min(100,S.fame+gm*.5);if(!S.best[r.ti]||t<S.best[r.ti])S.best[r.ti]=t;save();
  sfx.fin(rank===1);$("ot").textContent=(rank===1?"🏆 冠軍！":"第 "+rank+" 名")+"・"+r.T.n;$("od").textContent="總時間 "+t+" 秒　獎金 "+mny(pz)+"　知名度：全域 +"+f(gm*.5)+"、"+M[r.m].n+" +"+gm;$("ob").textContent="回工廠";$("ob").onclick=endRace;$("ov").style.display="flex"}
-/* 山道飄移賽：點對點山路，上山＝沿索引前進、下山＝反向；按住甩尾過彎累積飄移分數 */
+/* 山道賽：點對點山路（中段五連髮夾彎），上山＝沿索引前進、下山＝反向；1 對 1 競速，先到終點獲勝 */
 const gT=new THREE.Group();gT.visible=false;sc.add(gT);
-const TN=640,THW=6.5,TGT0=3000;let TPu=null,TGu,TCMu,TCMd,TSC,TDS;
+const THW=6.5;let TN=0,TPu=null,TGu,TCMu,TCMd,TSC,TDS;
 function buildTouge(){if(TPu)return;
- const raw=[[0,0],[70,6],[130,30],[150,62],[128,86],[60,92],[-20,100],[-72,118],[-84,148],[-56,170],[10,176],[80,186],[120,212],[112,244],[64,256],[-10,262],[-70,280],[-82,312],[-50,334],[20,340],[90,350],[150,372]];
- const cu=new THREE.CatmullRomCurve3(raw.map(([x,z])=>new THREE.Vector3(x,0,z)),false,"centripetal");TPu=cu.getSpacedPoints(TN-1);TDS=cu.getLength()/(TN-1);
- TPu.forEach((p,i)=>{const q=i/(TN-1);p.y=120*q+3*Math.sin(q*Math.PI*9)});
+ const HR=14,xs=[160,40],raw=[[0,0],[80,10],[150,-10],[220,20],[260,80],[230,140]];
+ for(let k=0;k<6;k++){const z=160+k*2*HR,a=xs[k%2],b=xs[1-k%2];raw.push([a,z],[(a+b)/2,z],[b,z]);if(k<5){const s=k%2?1:-1;[-45,0,45].forEach(d=>{const t=d*Math.PI/180;raw.push([b+s*HR*Math.cos(t),z+HR+HR*Math.sin(t)])})}}
+ raw.push([230,325],[290,385],[260,455],[180,485],[100,525],[60,595],[120,655],[200,675]);
+ const cu=new THREE.CatmullRomCurve3(raw.map(([x,z])=>new THREE.Vector3(x,0,z)),false,"centripetal"),len=cu.getLength();TN=Math.round(len/1.9);TPu=cu.getSpacedPoints(TN-1);TDS=len/(TN-1);
+ TPu.forEach((p,i)=>{const q=i/(TN-1);p.y=220*q+3*Math.sin(q*Math.PI*15)});
  TGu=TPu.map((p,i)=>{const a=TPu[Math.max(0,i-1)],b=TPu[Math.min(TN-1,i+1)];return new THREE.Vector3(b.x-a.x,0,b.z-a.z).normalize()});
  const CVt=TGu.map((t,i)=>i<TN-1?Math.acos(Math.min(1,t.dot(TGu[i+1])))/TDS:0),win=(i,d)=>{let m=0;for(let k=0;k<16;k++){const j=i+d*k;if(j>=0&&j<TN)m=Math.max(m,CVt[j])}return m};
  TCMu=CVt.map((_,i)=>win(i,1));TCMd=CVt.map((_,i)=>win(i,-1));
@@ -381,23 +383,24 @@ function buildTouge(){if(TPu)return;
  strip(THW,-THW,.05,.05,0x45494f);strip(.15,-.15,.07,.07,0xd8c25a);
  [THW+.3,-THW-.3].forEach(o=>{strip(o,o,.1,.95,0xd9dcdf);strip(o,o,-3,.1,0x6d5a45)});
  [6,TN-7].forEach(i=>{const t=TGu[i],p=TPu[i],b=box(THW*2,.08,1.4,0xffffff,p.x,p.y+.1,p.z,gT);b.rotation.y=Math.atan2(t.x,t.z)});
+ // 地形：取最近路段往外下降，再以每段路為頂點的錐面壓低，確保相鄰髮夾彎之間的坡面不會蓋過下層路面
  let x0=1e9,x1=-1e9,z0=1e9,z1=-1e9;TPu.forEach(p=>{x0=Math.min(x0,p.x);x1=Math.max(x1,p.x);z0=Math.min(z0,p.z);z1=Math.max(z1,p.z)});
- const pad=90,GX=64,GZ=64;x0-=pad;z0-=pad;const sx=(x1+pad-x0)/GX,sz=(z1+pad-z0)/GZ,HP=[],HI=[],tr=[];
- for(let j=0;j<=GZ;j++)for(let i=0;i<=GX;i++){const x=x0+i*sx,z=z0+j*sz;let bd=1e9,by=0;for(let k=0;k<TN;k+=3){const p=TPu[k],d=(p.x-x)**2+(p.z-z)**2;if(d<bd){bd=d;by=p.y}}
-  const d=Math.sqrt(bd),h=by-1.2-Math.max(0,d-THW-1.5)*.45+(d>THW+6?rnd(-1.2,1.2):0);HP.push(x,h,z);if(d>THW+7&&Math.random()<.18)tr.push([x+rnd(-2,2),h,z+rnd(-2,2)])}
+ const pad=90;x0-=pad;z0-=pad;x1+=pad;z1+=pad;const GX=Math.round((x1-x0)/5),GZ=Math.round((z1-z0)/5),sx=(x1-x0)/GX,sz=(z1-z0)/GZ,HP=[],HI=[],tr=[];
+ for(let j=0;j<=GZ;j++)for(let i=0;i<=GX;i++){const x=x0+i*sx,z=z0+j*sz;let bd=1e9,by=0,cone=1e9;for(let k=0;k<TN;k+=2){const p=TPu[k],d2=(p.x-x)**2+(p.z-z)**2;if(d2<bd){bd=d2;by=p.y}if(d2<3600)cone=Math.min(cone,p.y-1.5+Math.max(0,Math.sqrt(d2)-THW-1)*.6)}
+  const d=Math.sqrt(bd),h=Math.min(cone,by-1.2-Math.max(0,d-THW-1.5)*.45+(d>THW+6?rnd(-1.2,1.2):0));HP.push(x,h,z);if(d>THW+7&&Math.random()<.07)tr.push([x+rnd(-2,2),h,z+rnd(-2,2)])}
  for(let j=0;j<GZ;j++)for(let i=0;i<GX;i++){const a=j*(GX+1)+i,b=a+1,c=a+GX+1,d=c+1;HI.push(a,c,b,b,c,d)}
- mesh(HP,HI,0x6f9a52);box(1600,.1,1600,0x5f8a48,(x0+x1)/2,-45,(z0+z1)/2,gT);
+ mesh(HP,HI,0x6f9a52);box(2400,.1,2400,0x5f8a48,(x0+x1)/2,-60,(z0+z1)/2,gT);
  const tm=new THREE.InstancedMesh(new THREE.ConeGeometry(2.6,9,6),new THREE.MeshLambertMaterial({color:0x3f6b3a}),tr.length),m4=new THREE.Matrix4();tr.forEach((p,i)=>{m4.makeTranslation(p[0],p[1]+4.2,p[2]);tm.setMatrixAt(i,m4)});gT.add(tm)}
-const touPz=(cl,dir)=>Math.round(60*CP[cl]*(dir<0?1.3:1));
+const touPz=(cl,dir)=>Math.round(80*CP[cl]*(dir<0?1.3:1));
 function touRef(cl,dir){const Vc=34+10*cl+2.4,k=14*Vc/36.3,v=Vc*.8*(dir>0?.9:1.05),CM=dir>0?TCMu:TCMd;let s=0;for(let i=0;i<TN;i++)s+=TDS*(1+k*CM[i])/v;return s}
 function startTouge(dir){buildTouge();if(race)endRace();gW.visible=false;const mi=S.rm,cl=M[mi].t,Vc=34+10*cl+2.4,u=i=>dir>0?i:TN-1-i,i0=10,p=TPu[u(i0)],t0=TGu[u(i0)],tx=dir*t0.x,tz=dir*t0.z;
- const c={x:p.x+tz*2,z:p.z-tx*2,h:Math.atan2(tx,tz),vx:0,vz:0,i:i0,lap:0,d:0,prog:i0};
- const rix=(S.riv&&S.riv.length)?cl%S.riv.length:null,rv=rix!==null?S.riv[rix]:{c:0x888888,n:"對手",f:30},pm=full(mkCar(M[mi].col,mi)),a={s:i0+8,l:-2,k:14*Vc/36.3,v:Vc*.8*(dir>0?1.02:1.2)*(.9+rv.f*.002),m:full(mkCar(rv.c,undefined,cl,rix)),rn:rv.n};
+ const c={x:p.x+tz*2.5,z:p.z-tx*2.5,h:Math.atan2(tx,tz),vx:0,vz:0,i:i0,lap:0,d:0,prog:i0};
+ const rix=(S.riv&&S.riv.length)?cl%S.riv.length:null,rv=rix!==null?S.riv[rix]:{c:0x888888,n:"對手",f:30},pm=full(mkCar(M[mi].col,mi)),a={s:i0,l:-2.5,k:14*Vc/36.3,v:Vc*TRV[dir>0?0:1]*(.9+rv.f*.002),m:full(mkCar(rv.c,undefined,cl,rix)),rn:rv.n};
  [pm.g,a.m.g].forEach(g=>{g.rotation.order="YXZ";gT.add(g)});const lb=lab(a.rn);lb.position.set(0,3.4,0);a.m.g.add(lb);
- race={tg:1,dir,cl,cf:{},T:{n:dir>0?"上山":"下山"},laps:1,p:c,pm,m:mi,t:0,cd:3.4,go:false,done:false,ai:[a],score:0,chain:0,chainT:0,mult:1,grace:0,hits:0,ang:0,msg:"",msgT:0,
-  tgt:Math.round(TGT0*(Vc/36.4)*(.75+rv.f*.005)*(dir<0?1.2:1)),lim:Math.round(touRef(cl,dir)*1.6+10)};
+ race={tg:1,dir,cl,cf:{},T:{n:dir>0?"上山":"下山"},laps:1,p:c,pm,m:mi,t:0,cd:3.4,go:false,done:false,ai:[a],hits:0,lim:Math.round(touRef(cl,dir)*1.6+10)};
  enter("race");gR.visible=false;gT.visible=true;sc.fog=new THREE.Fog(0xcfd8e0,120,420);sfx.engStart();cam.position.set(c.x-Math.sin(c.h)*10,p.y+5,c.z-Math.cos(c.h)*10)}
-function tStep(dt){const r=race,c=r.p,u=i=>r.dir>0?i:TN-1-i,cl=i=>Math.max(0,Math.min(TN-1,i)),tp=i=>TPu[u(cl(i))],tt=i=>{const t=TGu[u(cl(i))];return{x:r.dir*t.x,z:r.dir*t.z}};
+const TRV=[.797,.927];
+function tStep(dt){const r=race,c=r.p,u=i=>r.dir>0?i:TN-1-i,cl=i=>Math.max(0,Math.min(TN-1,i)),tp=i=>TPu[u(cl(i))],tt=i=>{const t=TGu[u(cl(i))];return{x:r.dir*t.x,z:r.dir*t.z}},a=r.ai[0];
  if(r.go&&!r.done){r.t+=dt;const s=stats(r.m),VM=s.v*(r.dir>0?.92:1.1),slope=(tp(c.i+1).y-tp(c.i).y)/TDS;
   const st=(K.l?1:0)-(K.r?1:0);let Fx=Math.sin(c.h),Fz=Math.cos(c.h);const sf0=c.vx*Fx+c.vz*Fz;
   const DR=K.dr&&sf0>6?1:0;c.h+=st*(1.9*(DR?1.45:1)/(1+Math.abs(sf0)/45))*dt*Math.min(1,Math.abs(sf0)/8)*(sf0>=0?1:-1);
@@ -407,30 +410,27 @@ function tStep(dt){const r=race,c=r.p,u=i=>r.dir>0?i:TN-1-i,cl=i=>Math.max(0,Mat
   let b=c.i,bd=1e9;for(let k=-14;k<=14;k++){const i=c.i+k;if(i<0||i>=TN)continue;const q=tp(i),d=(q.x-c.x)**2+(q.z-c.z)**2;if(d<bd){bd=d;b=i}}c.i=b;
   const q=tp(b),t=tt(b),nx=t.z,nz=-t.x,o=(c.x-q.x)*nx+(c.z-q.z)*nz,lim=THW-1;c.d=Math.abs(o);
   if(c.d>lim){const sg=Math.sign(o);c.x-=nx*(o-sg*lim);c.z-=nz*(o-sg*lim);const vn=c.vx*nx+c.vz*nz;if(vn*sg>0){c.vx-=nx*vn*1.4;c.vz-=nz*vn*1.4;c.vx*=.85;c.vz*=.85;
-   if(Math.abs(vn)>3&&r.t-(r.hitT||-9)>.6){r.hitT=r.t;r.hits++;if(r.chain>0){r.chain=0;r.chainT=0;r.mult=1;r.msg="💥 撞護欄，連段中斷";r.msgT=1.6}sfx.beep()}}}
+   if(Math.abs(vn)>3&&r.t-(r.hitT||-9)>.6){r.hitT=r.t;r.hits++;sfx.beep()}}}
   if(b===0){const al=(c.x-q.x)*t.x+(c.z-q.z)*t.z;if(al<0){c.x-=t.x*al;c.z-=t.z*al}}
-  const spd=Math.hypot(c.vx,c.vz),fw=c.vx*Fx+c.vz*Fz,lat=Math.abs(c.vx*Lx+c.vz*Lz),ang=Math.atan2(lat,Math.max(.1,fw))*57.3;r.ang=ang;
-  if(spd>8&&fw>0&&ang>15&&ang<80){r.chain+=Math.min(ang,45)*spd*dt*.5;r.chainT+=dt;r.mult=1+Math.min(4,Math.floor(r.chainT/1.5));r.grace=0}
-  else if(r.chain>0&&(r.grace+=dt)>.7){r.score+=Math.round(r.chain*r.mult);r.chain=0;r.chainT=0;r.mult=1}
-  if(lat>3){smokeAcc+=dt*22;while(smokeAcc>=1){smokeAcc-=1;puffSmoke(c.x-Fx*1.15+Lx*(Math.random()*1.7-.85),q.y,c.z-Fz*1.15+Lz*(Math.random()*1.7-.85))}}
-  r.ai.forEach(a=>{a.s=Math.min(TN-1,a.s+a.v/(1+a.k*(r.dir>0?TCMu:TCMd)[u(cl(Math.floor(a.s)))])*dt/TDS)});
-  if(c.i>=TN-8)tFinish();else if(r.t>r.lim){r.to=true;tFinish()}}
+  {const p=a.m.g.position,dx=c.x-p.x,dz=c.z-p.z,d=Math.hypot(dx,dz);if(d<2.6&&d>.01){const k=(2.6-d)/d;c.x+=dx*k;c.z+=dz*k;const vn=(c.vx*dx+c.vz*dz)/d;if(vn<0){c.vx-=dx/d*vn*1.2;c.vz-=dz/d*vn*1.2}}}
+  const lat=Math.abs(c.vx*Lx+c.vz*Lz);if(lat>3){smokeAcc+=dt*22;while(smokeAcc>=1){smokeAcc-=1;puffSmoke(c.x-Fx*1.15+Lx*(Math.random()*1.7-.85),q.y,c.z-Fz*1.15+Lz*(Math.random()*1.7-.85))}}
+  if(a.fin===undefined){a.s=Math.min(TN-1,a.s+a.v/(1+a.k*(r.dir>0?TCMu:TCMd)[u(cl(Math.floor(a.s)))])*dt/TDS);if(a.s>=TN-8)a.fin=r.t}
+  if(c.i>=TN-8)tFinish();else if(r.t>r.lim){r.to=true;tFinish()}else if(a.fin!==undefined&&r.t-a.fin>15)tFinish()}
  const seg=j=>{const p0=tp(j),p1=tp(j+1),dx=p1.x-p0.x,dz=p1.z-p0.z;return{p0,p1,fr:((c.x-p0.x)*dx+(c.z-p0.z)*dz)/(dx*dx+dz*dz||1)}};let sg=seg(c.i);if(sg.fr<0&&c.i>0)sg=seg(c.i-1);
  const fr=Math.max(0,Math.min(1,sg.fr)),cy=sg.p0.y+(sg.p1.y-sg.p0.y)*fr+.4,ck=1-Math.exp(-10*dt);r.cy=r.cy===undefined?cy:r.cy+(cy-r.cy)*ck;
  const pm=r.pm.g;pm.position.set(c.x,cy,c.z);pm.rotation.y=c.h-Math.PI/2;pm.rotation.z+=(Math.atan((sg.p1.y-sg.p0.y)/TDS)-pm.rotation.z)*ck;
- r.ai.forEach(a=>{const i=Math.min(TN-2,Math.floor(a.s)),q=a.s-i,p0=tp(i),p1=tp(i+1),t=tt(i),yaw=Math.max(-.55,Math.min(.55,-r.dir*TSC[u(i)]*9)),g=a.m.g;
+ {const i=Math.min(TN-2,Math.floor(a.s)),q=a.s-i,p0=tp(i),p1=tp(i+1),t=tt(i),yaw=Math.max(-.55,Math.min(.55,-r.dir*TSC[u(i)]*9)),g=a.m.g;
   g.position.set(p0.x+(p1.x-p0.x)*q+t.z*a.l,p0.y+(p1.y-p0.y)*q+.4,p0.z+(p1.z-p0.z)*q-t.x*a.l);g.rotation.y=Math.atan2(t.x,t.z)-Math.PI/2+yaw;g.rotation.z=Math.atan((p1.y-p0.y)/TDS);
-  if(r.go&&a.s<TN-1&&Math.abs(yaw)>.25){a.sm=(a.sm||0)+dt*14;while(a.sm>=1){a.sm-=1;puffSmoke(g.position.x-t.x*1.5+rnd(-.8,.8),p0.y,g.position.z-t.z*1.5+rnd(-.8,.8))}}});
+  if(r.go&&a.fin===undefined&&Math.abs(yaw)>.25){a.sm=(a.sm||0)+dt*14;while(a.sm>=1){a.sm-=1;puffSmoke(g.position.x-t.x*1.5+rnd(-.8,.8),p0.y,g.position.z-t.z*1.5+rnd(-.8,.8))}}}
  const ch=camH(r,c.h,dt),Fx=Math.sin(ch),Fz=Math.cos(ch),spd=Math.hypot(c.vx,c.vz),k=1-Math.exp(-6*dt),bk=9+spd*.06;
  cam.position.x+=(c.x-Fx*bk-cam.position.x)*k;cam.position.z+=(c.z-Fz*bk-cam.position.z)*k;cam.position.y+=(r.cy+4.4-cam.position.y)*k;cam.lookAt(c.x+Fx*6,r.cy+1.2,c.z+Fz*6);
- const a=r.ai[0],gap=Math.round((a.s-c.i)*TDS),left=Math.max(0,Math.round((TN-8-c.i)*TDS));if(r.msgT>0)r.msgT-=dt;
- set($("hud"),`<b>${r.dir>0?"⛰ 上山":"🏔 下山"}</b>　分數 <b>${r.score}</b>${r.chain>0?`　<b style="color:#ff5533">+${Math.round(r.chain)} ×${r.mult}</b>`:""}　<small>對手 ${r.tgt}</small><br><b>${Math.round(spd*3.6)}</b> km/h　角度 ${Math.round(r.ang)}°　剩 ${left} m　${gap>=0?"對手領先 "+gap:"領先對手 "+(-gap)} m　${f(r.t)}／${r.lim} 秒${r.msgT>0?" <b>"+r.msg+"</b>":""} <button id="qb">退出</button> <button id="qg" data-uig style="padding:6px 12px;background:#283242;color:#fff;border:1px solid #556274;border-radius:7px;cursor:pointer">👁隱藏</button>`);const qb=$("qb");if(qb)qb.onclick=endRace;sfx.eng(c,r)}
-function tFinish(){const r=race;r.done=true;sfx.engStop();if(r.chain>0){r.score+=Math.round(r.chain*r.mult);r.chain=0}
- const first=!r.to&&r.ai[0].s<TN-8,fin=Math.round(r.score*(first?1.15:1)),ok=!r.to&&fin>=r.tgt,dn=r.dir<0,pz=ok?touPz(r.cl,r.dir):0,gm=r.to?0:(ok?6:1.5)*(dn?1.3:1),key=dn?"td":"tu";
- S.cash+=pz;S.mf[r.m]=Math.min(100,S.mf[r.m]+gm);S.fame=Math.min(100,S.fame+gm*.5);if(!r.to&&(!S.best[key]||fin>S.best[key]))S.best[key]=fin;save();
- sfx.fin(ok);$("ot").textContent=(r.to?"⏱ 超過時間":ok?"🏆 山道勝利！":"❌ 分數輸給對手")+"・"+(dn?"下山":"上山");
- $("od").textContent=(r.to?"沒在 "+r.lim+" 秒內抵達終點。":"飄移分數 "+r.score+(first?"，先抵達終點 ×1.15 = "+fin:"")+"（對手 "+r.tgt+"）・撞護欄 "+r.hits+" 次。")+"　獎金 "+mny(pz)+"　知名度：全域 +"+f(gm*.5)+"、"+M[r.m].n+" +"+f(gm);$("ob").textContent="回工廠";$("ob").onclick=endRace;$("ov").style.display="flex"}
-const tougeUI=m=>`<div class="sec"><b>⛰ 山道飄移賽</b> <small>1 對 1 山路追走：按住甩尾（空白鍵／🌀）過彎累積分數，連續飄移倍率最高 ×5，撞護欄會中斷連段；分數贏過對手才算勝，先到終點分數 ×1.15。上山有重力拖速度；下山更快、對手更強。</small>`+[[1,"⛰ 上山","tu"],[-1,"🏔 下山","td"]].map(([d,n,k])=>`<div class="r"><span><b>${n}</b> <small>勝利獎金 ${mny(touPz(m.t,d))}${S.best[k]?"・最佳 "+S.best[k]+" 分":""}</small></span><button class="p" data-a="tou" data-d="${d}">出賽</button></div>`).join("")+`</div>`;
+ const gap=Math.round((a.s-c.i)*TDS),pos=a.fin!==undefined||a.s>c.i?2:1,left=Math.max(0,Math.round((TN-8-c.i)*TDS));
+ set($("hud"),`<b>${r.dir>0?"⛰ 上山":"🏔 下山"}</b>　<b>${pos}</b>/2 位　<b>${Math.round(spd*3.6)}</b> km/h${K.dr?" <b style='color:#ff5533'>🌀 甩尾</b>":""}<br>剩 ${left} m　${a.fin!==undefined?"對手已抵達終點":gap>=0?"對手領先 "+gap+" m":"領先對手 "+(-gap)+" m"}　${f(r.t)}／${r.lim} 秒 <button id="qb">退出</button> <button id="qg" data-uig style="padding:6px 12px;background:#283242;color:#fff;border:1px solid #556274;border-radius:7px;cursor:pointer">👁隱藏</button>`);const qb=$("qb");if(qb)qb.onclick=endRace;sfx.eng(c,r)}
+function tFinish(){const r=race;r.done=true;sfx.engStop();const a=r.ai[0],done=!r.to&&r.p.i>=TN-8,ok=done&&a.fin===undefined,dn=r.dir<0,full0=touPz(r.cl,r.dir),pz=ok?full0:done?Math.round(full0*.15):0,gm=done?(ok?6:2)*(dn?1.3:1):0,key=dn?"tdt":"tut",t=f(r.t);
+ S.cash+=pz;S.mf[r.m]=Math.min(100,S.mf[r.m]+gm);S.fame=Math.min(100,S.fame+gm*.5);if(done&&(!S.best[key]||t<S.best[key]))S.best[key]=t;save();
+ sfx.fin(ok);$("ot").textContent=(r.to?"⏱ 超過時間":!done?"❌ 對手抵達終點":ok?"🏆 山道勝利！":"🥈 第 2 名")+"・"+(dn?"下山":"上山");
+ $("od").textContent=(r.to?"沒在 "+r.lim+" 秒內抵達終點。":!done?"對手 "+f(a.fin)+" 秒抵達，你沒在 15 秒內跟上。":"你的時間 "+t+" 秒"+(a.fin!==undefined?"（對手 "+f(a.fin)+" 秒）":"，對手還沒到")+"・撞護欄 "+r.hits+" 次。")+"　獎金 "+mny(pz)+"　知名度：全域 +"+f(gm*.5)+"、"+M[r.m].n+" +"+f(gm);$("ob").textContent="回工廠";$("ob").onclick=endRace;$("ov").style.display="flex"}
+const tougeUI=m=>`<div class="sec"><b>⛰ 山道賽</b> <small>1 對 1 山路競速，先抵達終點獲勝。全長約 2 公里，中段有五連髮夾彎：入彎前要煞車，也可以按住甩尾（空白鍵／🌀）甩過去。上山有重力拖速度；下山更快、更難煞，獎金 ×1.3。</small>`+[[1,"⛰ 上山","tut"],[-1,"🏔 下山","tdt"]].map(([d,n,k])=>`<div class="r"><span><b>${n}</b> <small>勝利獎金 ${mny(touPz(m.t,d))}${S.best[k]?"・最佳 "+S.best[k]+" 秒":""}</small></span><button class="p" data-a="tou" data-d="${d}">出賽</button></div>`).join("")+`</div>`;
 /* 工廠鏡頭與輸入 */
 let th=.7,ph=1,rad=46;const tgt=new THREE.Vector3(9,0,0),cv=R.domElement,ptr=new Map(),ray=new THREE.Raycaster();let down=null,pd=1;
 const pdist=()=>{const a=[...ptr.values()];return Math.hypot(a[0][0]-a[1][0],a[0][1]-a[1][1])||1},zm=v=>Math.max(14,Math.min(200,v));
